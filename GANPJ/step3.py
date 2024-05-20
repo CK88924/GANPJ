@@ -3,61 +3,67 @@ import os
 import time
 from matplotlib import pyplot as plt
 
-# 数据集路径
+# 數據集路徑
 dataset_path = 'dataset'
 blurred_folder = os.path.join(dataset_path, 'blurred')
 target_folder = os.path.join(dataset_path, 'target')
 
-# 加载数据集
+# 加載數據集
 def load(image_file):
-    # 构造完整的文件路径
+    # 構造完整的文件路徑
     blurred_image_path = tf.strings.join([blurred_folder, image_file], separator=os.sep)
     target_image_path = tf.strings.join([target_folder, image_file], separator=os.sep)
     
-    # 加载模糊图片
+    # 加載模糊圖片
     blurred_image = tf.io.read_file(blurred_image_path)
     blurred_image = tf.image.decode_jpeg(blurred_image)
-    blurred_image = tf.image.resize(blurred_image, [256, 256])  # 确保大小一致
-    blurred_image = tf.cast(blurred_image, tf.float32) / 255.0  # 归一化处理
     
-    # 加载目标图片
+    # 加載目標圖片
     target_image = tf.io.read_file(target_image_path)
     target_image = tf.image.decode_jpeg(target_image)
-    target_image = tf.image.resize(target_image, [256, 256])  # 确保大小一致
-    target_image = tf.cast(target_image, tf.float32) / 255.0  # 归一化处理
     
-    # 检查是否有NaN值
-    tf.debugging.check_numerics(blurred_image, f"NaN found in blurred image {image_file}")
-    tf.debugging.check_numerics(target_image, f"NaN found in target image {image_file}")
+    blurred_image = tf.cast(blurred_image, tf.float32)
+    target_image = tf.cast(target_image, tf.float32)
     
     return blurred_image, target_image
 
+def resize(input_image, real_image, height, width):
+    input_image = tf.image.resize(input_image, [height, width])
+    real_image = tf.image.resize(real_image, [height, width])
+    
+    return input_image, real_image
+
 def normalize(input_image, real_image):
-    input_image = (input_image * 2.0) - 1.0
-    real_image = (real_image * 2.0) - 1.0
+    input_image = (input_image / 127.5) - 1
+    real_image = (real_image / 127.5) - 1
+    
     return input_image, real_image
 
 def load_image_train(image_file):
     input_image, real_image = load(image_file)
+    input_image, real_image = resize(input_image, real_image, 256, 256)
     input_image, real_image = normalize(input_image, real_image)
+    
     return input_image, real_image
 
 def load_image_test(image_file):
     input_image, real_image = load(image_file)
+    input_image, real_image = resize(input_image, real_image, 256, 256)
     input_image, real_image = normalize(input_image, real_image)
+    
     return input_image, real_image
 
-# 获取所有图像文件名
+# 獲取所有圖像文件名
 image_files = sorted(os.listdir(blurred_folder))
 
 BUFFER_SIZE = 400
 BATCH_SIZE = 1
 
-# 划分训练和测试集
+# 劃分訓練和測試集
 train_files = image_files[:int(0.8 * len(image_files))]
 test_files = image_files[int(0.8 * len(image_files)):]
 
-# 创建TensorFlow数据集
+# 創建TensorFlow數據集
 train_dataset = tf.data.Dataset.from_tensor_slices(train_files)
 train_dataset = train_dataset.map(load_image_train, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 train_dataset = train_dataset.shuffle(BUFFER_SIZE)
@@ -67,21 +73,9 @@ test_dataset = tf.data.Dataset.from_tensor_slices(test_files)
 test_dataset = test_dataset.map(load_image_test)
 test_dataset = test_dataset.batch(BATCH_SIZE)
 
-# 检查训练数据集中的图像
-for image_file in train_files[:5]:
-    input_image, real_image = load(image_file)
-    plt.figure(figsize=(10, 10))
-    plt.subplot(1, 2, 1)
-    plt.imshow(input_image * 0.5 + 0.5)
-    plt.title("Input Image")
-    plt.subplot(1, 2, 2)
-    plt.imshow(real_image * 0.5 + 0.5)
-    plt.title("Target Image")
-    plt.show()
-
-# 定义生成器
+# 定義生成器
 def downsample(filters, size, apply_batchnorm=True):
-    initializer = tf.keras.initializers.GlorotNormal(seed=None)  # 添加种子
+    initializer = tf.random_normal_initializer(0., 0.02)
     
     result = tf.keras.Sequential()
     result.add(tf.keras.layers.Conv2D(filters, size, strides=2, padding='same',
@@ -95,7 +89,7 @@ def downsample(filters, size, apply_batchnorm=True):
     return result
 
 def upsample(filters, size, apply_dropout=False):
-    initializer = tf.keras.initializers.GlorotNormal(seed=None)  # 添加种子
+    initializer = tf.random_normal_initializer(0., 0.02)
     
     result = tf.keras.Sequential()
     result.add(tf.keras.layers.Conv2DTranspose(filters, size, strides=2,
@@ -136,7 +130,7 @@ def Generator():
         upsample(64, 4),
     ]
     
-    initializer = tf.keras.initializers.GlorotNormal(seed=None)  # 添加种子
+    initializer = tf.random_normal_initializer(0., 0.02)
     last = tf.keras.layers.Conv2DTranspose(3, 4,
                                            strides=2,
                                            padding='same',
@@ -160,9 +154,9 @@ def Generator():
     
     return tf.keras.Model(inputs=inputs, outputs=x)
 
-# 定义判别器
+# 定義判別器
 def Discriminator():
-    initializer = tf.keras.initializers.GlorotNormal(seed=None)  # 添加种子
+    initializer = tf.random_normal_initializer(0., 0.02)
     
     inp = tf.keras.layers.Input(shape=[256, 256, 3], name='input_image')
     tar = tf.keras.layers.Input(shape=[256, 256, 3], name='target_image')
@@ -189,7 +183,7 @@ def Discriminator():
     
     return tf.keras.Model(inputs=[inp, tar], outputs=last)
 
-# 定义损失函数
+# 定義損失函數
 LAMBDA = 100
 
 loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -212,14 +206,14 @@ def discriminator_loss(disc_real_output, disc_generated_output):
     
     return total_disc_loss
 
-# 定义优化器
-generator_optimizer = tf.keras.optimizers.Adam(1e-6, beta_1=0.5)
-discriminator_optimizer = tf.keras.optimizers.Adam(1e-6, beta_1=0.5)
+# 定義優化器
+generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
+discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 
 generator = Generator()
 discriminator = Discriminator()
 
-# 定义检查点
+# 定義檢查點
 checkpoint_dir = 'training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
 checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
@@ -227,7 +221,7 @@ checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
                                  generator=generator,
                                  discriminator=discriminator)
 
-# 定义训练循环
+# 定義訓練循環
 EPOCHS = 150
 
 import datetime
@@ -247,28 +241,15 @@ def train_step(input_image, target, epoch):
         gen_total_loss, gen_gan_loss, gen_l1_loss = generator_loss(disc_generated_output, gen_output, target)
         disc_loss = discriminator_loss(disc_real_output, disc_generated_output)
     
-    # 检查损失值是否为nan
-    if tf.reduce_any(tf.math.is_nan(gen_total_loss)) or tf.reduce_any(tf.math.is_nan(disc_loss)):
-        print(f"NaN encountered at epoch {epoch}")
-        # 返回零损失，避免结构不匹配
-        return tf.constant(0.0), tf.constant(0.0)
+    generator_gradients = gen_tape.gradient(gen_total_loss,
+                                            generator.trainable_variables)
+    discriminator_gradients = disc_tape.gradient(disc_loss,
+                                                 discriminator.trainable_variables)
     
-    generator_gradients = gen_tape.gradient(gen_total_loss, generator.trainable_variables)
-    discriminator_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
-    
-    for grad in generator_gradients:
-        if tf.reduce_any(tf.math.is_nan(grad)):
-            print(f"NaN found in generator gradients at epoch {epoch}")
-    
-    for grad in discriminator_gradients:
-        if tf.reduce_any(tf.math.is_nan(grad)):
-            print(f"NaN found in discriminator gradients at epoch {epoch}")
-    
-    generator_gradients = [tf.clip_by_value(grad, -5.0, 5.0) for grad in generator_gradients]
-    generator_optimizer.apply_gradients(zip(generator_gradients, generator.trainable_variables))
-    
-    discriminator_gradients = [tf.clip_by_value(grad, -5.0, 5.0) for grad in discriminator_gradients]
-    discriminator_optimizer.apply_gradients(zip(discriminator_gradients, discriminator.trainable_variables))
+    generator_optimizer.apply_gradients(zip(generator_gradients,
+                                            generator.trainable_variables))
+    discriminator_optimizer.apply_gradients(zip(discriminator_gradients,
+                                                discriminator.trainable_variables))
     
     with summary_writer.as_default():
         tf.summary.scalar('gen_total_loss', gen_total_loss, step=epoch)
@@ -291,11 +272,11 @@ def generate_images(model, test_input, tar, output_dir, epoch, step):
         plt.imshow(display_list[i] * 0.5 + 0.5)
         plt.axis('off')
     
-    # 创建输出目录（如果不存在）
+    # 創建輸出目錄（如果不存在）
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    # 保存图像
+    # 保存圖像
     output_path = os.path.join(output_dir, f"epoch{epoch}_step{step}.png")
     plt.savefig(output_path)
     plt.close()
@@ -307,7 +288,7 @@ def train(dataset, epochs, output_dir):
         for step, (input_image, target) in enumerate(dataset):
             gen_loss, disc_loss = train_step(input_image, target, epoch)
             
-            # 每 100 步保存一次图像
+            # 每 100 步保存一次圖像
             if step % 100 == 0:
                 generate_images(generator, input_image, target, output_dir, epoch, step)
                 print(f'Epoch: {epoch+1}, Step: {step}, Gen Loss: {gen_loss.numpy()}, Disc Loss: {disc_loss.numpy()}')
@@ -319,8 +300,8 @@ def train(dataset, epochs, output_dir):
 
     checkpoint.save(file_prefix=checkpoint_prefix)
 
-# 设置输出目录路径
+# 設置輸出目錄路徑
 output_dir = 'output_images'
 
-# 训练模型
+# 訓練模型
 train(train_dataset, EPOCHS, output_dir)
