@@ -225,7 +225,7 @@ checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
                                  discriminator=discriminator)
 
 # 定义训练循环
-EPOCHS = 500
+EPOCHS = 150
 
 import datetime
 log_dir = "logs/"
