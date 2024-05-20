@@ -18,7 +18,7 @@ def parse_xml(xml_file):
 def blur_license_plate(image, bbox):
     xmin, ymin, xmax, ymax = bbox
     ROI = image[ymin:ymax, xmin:xmax]
-    blurred_ROI = cv2.GaussianBlur(ROI, (15, 15), 10)
+    blurred_ROI = cv2.GaussianBlur(ROI, (5, 5), 5)
     return blurred_ROI
 
 def process_images(image_folder, xml_folder, output_folder):
