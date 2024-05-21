@@ -18,11 +18,11 @@ IMG_WIDTH = 256
 IMG_HEIGHT = 256
 LAMBDA = 100
 
-# 日志记录器
+# 日志記錄器
 log_dir = "logs/"
 summary_writer = tf.summary.create_file_writer(log_dir)
 
-# 加载数据集
+# 加載數據集
 def load(image_file):
     image = tf.io.read_file(image_file)
     image = tf.image.decode_jpeg(image)
@@ -81,7 +81,7 @@ def load_image_test(image_file):
     input_image, real_image = normalize(input_image, real_image)
     return input_image, real_image
 
-# 更新路径以匹配您的数据结构
+# 更新路徑以匹配您的數據結構
 train_dataset = tf.data.Dataset.list_files('dataset/combined/*.jpg')
 train_dataset = train_dataset.map(load_image_train,
                                   num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -92,7 +92,7 @@ test_dataset = tf.data.Dataset.list_files('dataset/test/*.jpg')
 test_dataset = test_dataset.map(load_image_test)
 test_dataset = test_dataset.batch(BATCH_SIZE)
 
-# 定义生成器
+# 定義生成器
 def downsample(filters, size, apply_batchnorm=True):
     initializer = tf.random_normal_initializer(0., 0.02)
     result = tf.keras.Sequential()
@@ -154,7 +154,7 @@ def Generator():
     x = last(x)
     return tf.keras.Model(inputs=inputs, outputs=x)
 
-# 定义判别器
+# 定義判別器
 def Discriminator():
     initializer = tf.random_normal_initializer(0., 0.02)
     inp = tf.keras.layers.Input(shape=[256, 256, 3], name='input_image')
@@ -174,7 +174,7 @@ def Discriminator():
                                   kernel_initializer=initializer)(zero_pad2)  # (bs, 30, 30, 1)
     return tf.keras.Model(inputs=[inp, tar], outputs=last)
 
-# 定义损失函数
+# 定義損失函數
 loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 def discriminator_loss(disc_real_output, disc_generated_output):
@@ -189,13 +189,13 @@ def generator_loss(disc_generated_output, gen_output, target):
     total_gen_loss = gan_loss + (LAMBDA * l1_loss)
     return total_gen_loss
 
-# 定义优化器
+# 定義優化器
 generator = Generator()
 discriminator = Discriminator()
 generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 
-# 检查NaN值
+# 檢查NaN值
 def check_nan(tensor):
     nan_check = tf.reduce_any(tf.math.is_nan(tensor))
     if nan_check:
@@ -204,7 +204,7 @@ def check_nan(tensor):
         print("No NaN detected.")
     return nan_check
 
-# 保存和加载模型
+# 保存和加載模型
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
 checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
@@ -224,7 +224,7 @@ def load_checkpoint():
     else:
         print("No checkpoint found.")
 
-# 训练和推理生成代码
+# 訓練和推理生成代碼
 def generate_images(model, test_input, tar, save_path=None):
     prediction = model(test_input, training=True)
     plt.figure(figsize=(15, 15))
@@ -253,7 +253,7 @@ def train_step(input_image, target, epoch):
     generator_optimizer.apply_gradients(zip(generator_gradients, generator.trainable_variables))
     discriminator_optimizer.apply_gradients(zip(discriminator_gradients, discriminator.trainable_variables))
     
-    # 打印损失值
+    # 打印損失值
     tf.print(f"Epoch: {epoch+1}, Gen Loss: ", gen_loss, ", Disc Loss: ", disc_loss)
     
     with summary_writer.as_default():
@@ -272,23 +272,23 @@ def fit(train_ds, epochs, test_ds, output_dir):
         if (epoch + 1) % 20 == 0:
             save_checkpoint()
         
-        # 每个 epoch 保存一次图像
+        # 每個 epoch 保存一次圖像
         for example_input, example_target in test_ds.take(1):
             save_path = os.path.join(output_dir, f"test_epoch_{epoch+1}.jpg")
             generate_images(generator, example_input, example_target, save_path=save_path)
 
         print(f"\nTime taken for epoch {epoch+1} is {time.time()-start} sec\n")
 
-# 训练模型
+# 訓練模型
 EPOCHS = 150
 fit(train_dataset, EPOCHS, test_dataset, "output_images")
 
-# 推理生成图像并保存
+# 推理生成圖像並保存
 def inference(image_file, output_dir):
     input_image = load_single_image(image_file)
     save_path = os.path.join(output_dir, f"inference_{os.path.basename(image_file)}")
     generate_images(generator, input_image, input_image, save_path=save_path)
 
-# 加载模型后进行推理
+# 加載模型後進行推理
 load_checkpoint()
 inference("dataset/Cars432.jpg", "output_images")
