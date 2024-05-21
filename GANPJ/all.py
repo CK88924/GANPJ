@@ -281,7 +281,7 @@ def fit(train_ds, epochs, test_ds, output_dir):
 
 # 训练模型
 EPOCHS = 150
-#fit(train_dataset, EPOCHS, test_dataset, "output_images")
+fit(train_dataset, EPOCHS, test_dataset, "output_images")
 
 # 推理生成图像并保存
 def inference(image_file, output_dir):
