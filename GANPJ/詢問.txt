@@ -3,3 +3,9 @@
 參考:https://www.tensorflow.org/tutorials/generative/pix2pix?hl=zh-cn
 
 full:https://drive.google.com/drive/folders/1SdCGSjEqbZYhlbgenjhUs6-K7lrBRwvP?usp=drive_link
+
+順序:step1(模糊車牌並儲存車牌部分(256*256))->儲存原始車牌部分->combined(合併成512*256輸入並轉為jpg)->all(train fit and process one pic out of test folder 但沒有確定非jpg能不能運行) or all2(遍歷testout folder 測試 且盡量確保推理時遇到非jpg 轉為 jpg處理)
+
+手動分 訓練與資料 大約 8:2
+
+沒有檢查點的話記得先fit()不然雖然不會報錯但會被當推理圖片處理
