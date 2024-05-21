@@ -1,3 +1,5 @@
-https://chatgpt.com/share/fb66e458-713d-4155-a8b0-c0ee8ed0542f
+詢問(chatgpt)https://chatgpt.com/share/fb66e458-713d-4155-a8b0-c0ee8ed0542f
 
 參考:https://www.tensorflow.org/tutorials/generative/pix2pix?hl=zh-cn
+
+full:https://drive.google.com/drive/folders/1SdCGSjEqbZYhlbgenjhUs6-K7lrBRwvP?usp=drive_link
