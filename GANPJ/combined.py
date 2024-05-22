@@ -8,37 +8,37 @@ Created on Tue May 21 16:06:42 2024
 import os
 from PIL import Image
 
-# 定义输入和目标图像的路径
-input_dir = r"C:\Users\CK\Desktop\GANPJ\dataset\blurred"
-target_dir =r"C:\Users\CK\Desktop\GANPJ\dataset\target"
-output_dir =r"C:\Users\CK\Desktop\GANPJ\dataset\combined" 
+# 定義輸入和目標圖像的路徑
+input_dir = r"dataset\blurred"
+target_dir =r"dataset\target"
+output_dir =r"dataset\combined" 
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-# 获取输入和目标图像的文件名列表
+# 獲取輸入和目標圖像的文件名列表
 input_images = sorted(os.listdir(input_dir))
 target_images = sorted(os.listdir(target_dir))
 
 for input_image_name, target_image_name in zip(input_images, target_images):
-    # 打开输入和目标图像
+    # 打開輸入和目標圖像
     input_image = Image.open(os.path.join(input_dir, input_image_name)).convert('RGB')
     target_image = Image.open(os.path.join(target_dir, target_image_name)).convert('RGB')
 
-    # 检查图像尺寸是否匹配
+    # 檢查圖像尺寸是否匹配
     if input_image.size != target_image.size:
         print(f"Image sizes do not match for {input_image_name} and {target_image_name}. Skipping.")
         continue
 
-    # 创建新的图像，宽度为两个图像的宽度之和，高度保持不变
+    # 創建新的圖像，寬度為兩個圖像的寬度之和，高度保持不變
     combined_width = input_image.width + target_image.width
     combined_image = Image.new('RGB', (combined_width, input_image.height))
 
-    # 将输入和目标图像粘贴到新的图像上
+    # 將輸入和目標圖像粘貼到新的圖像上
     combined_image.paste(input_image, (0, 0))
     combined_image.paste(target_image, (input_image.width, 0))
 
-    # 保存合并后的图像为JPG格式
+    # 保存合並後的圖像為JPG格式
     combined_image.save(os.path.join(output_dir, input_image_name.replace('.png', '_combined.jpg')))
 
 print("Image combination completed.")
